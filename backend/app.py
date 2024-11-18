@@ -13,7 +13,10 @@ from datetime import timedelta
 
 app = Flask(__name__)
 CORS(app)
-df = pd.read_csv('NIFTY 50_minute.csv')
+import os
+
+file_path = os.path.join(os.path.dirname(__file__), 'NIFTY 50_minute.csv')
+df = pd.read_csv(file_path)
 
 # Replace with your actual Gemini API key
 GOOGLE_API_KEY = 'AIzaSyDGn6vr_hc_dPxSdGR73WlMAb5mA-oGp28'
