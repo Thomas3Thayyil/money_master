@@ -22,11 +22,14 @@ function App() {
       setMessages((prevMessages) => [...prevMessages, userMessage]);
 
       // Sending the message to the backend
-      const response = await fetch("http://127.0.0.1:5000/generate-text", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
+      const response = await fetch(
+        "https://money-master-gbim.onrender.com/generate-text",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt }),
+        }
+      );
 
       // Get the bot's response
       const data = await response.json();
@@ -42,16 +45,19 @@ function App() {
     // Clear the input prompt
     setPrompt("");
   };
-
+  // "http://127.0.0.1:5000/generate-chart"
   const handleChartSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/generate-chart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: date }), // Send the selected date
-      });
+      const response = await fetch(
+        "https://money-master-gbim.onrender.com/generate-chart",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: date }), // Send the selected date
+        }
+      );
       const data = await response.json();
 
       // Set the forecast data in the state
@@ -104,11 +110,14 @@ function App() {
   const handleSummarize = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://127.0.0.1:5000/summarize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticker }),
-      });
+      const response = await fetch(
+        "https://money-master-gbim.onrender.com/summarize",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ticker }),
+        }
+      );
       const data = await response.json();
       setSummary(data.summary);
     } catch (error) {
@@ -119,7 +128,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>🔥MONEYMASTER🔥</h1>
+        <h1>🔥 MONEYMASTER 🔥</h1>
       </header>
       <div className="content">
         <div className="chart-section">
