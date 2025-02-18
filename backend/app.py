@@ -1,27 +1,62 @@
 from flask import Flask, request, jsonify
-# for chatbot
 import google.generativeai as genai
-from flask_cors import CORS
-# for chart
+from flask_cors import CORS, cross_origin
 import pandas as pd
 from prophet import Prophet
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
+import os
+import requests
 from datetime import timedelta
+import time
 
 app = Flask(__name__)
 CORS(app)
-import os
 
 file_path = os.path.join(os.path.dirname(__file__), 'NIFTY 50_minute.csv')
 df = pd.read_csv(file_path)
 
-# Replace with your actual Gemini API key
-GOOGLE_API_KEY = 'AIzaSyDGn6vr_hc_dPxSdGR73WlMAb5mA-oGp28'
+GOOGLE_API_KEY = 'AIzaSyCHfXCqruaatQwfUp4sfYjCwJCOY7tnzRY'
 genai.configure(api_key=GOOGLE_API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
+
+news_KEY = '442d358a3397407f8ff1d93295f60848'
+url = 'https://newsapi.org/v2/top-headlines'
+
+params = {
+    'apiKey': news_KEY,
+    'category': 'business'
+}
+
+
+@app.route('/art_create', methods=['POST'])
+def art_create():
+    try:
+        response = requests.get(url, params=params)
+        data = response.json()
+
+        title_list = [title.get('title', 'No title available') for title in data['articles']]
+        details = []
+
+        predef = (
+            "Read the title carefully",
+            "Give me a summary of how this will influence the price of various stocks",
+            "Give ONLY that, in a paragraph format",
+            "Specifically name the stocks"
+        )
+
+        for title in title_list[:5]:
+            x = model.generate_content(f"{predef} {title}")
+            details.append(x.text)
+
+        return jsonify({"messagehead": title_list, "messagebody": details})
+    
+    except Exception as e:
+        
+        print("exception raised", e)
+        temp = ['a', 'b', 'c']
+        return jsonify({"messagehead": title_list, "messagebody": temp})
 
 @app.route('/generate-text', methods=['POST'])
 def generate_text():
@@ -31,13 +66,10 @@ def generate_text():
         return jsonify({'error': 'Prompt is required'}), 400
 
     try:
-        # Generate content using the Google API
         response = model.generate_content(prompt)
-        print(response.text)
-        # Extract the generated text from the response object
-        if hasattr(response, 'text'):  # If the response has a 'text' attribute
+        if hasattr(response, 'text'):
             generated_text = response.text
-        elif 'text' in response:  # If response is a dict with a 'text' key
+        elif 'text' in response:
             generated_text = response['text']
         else:
             generated_text = "No text generated" 
@@ -99,4 +131,3 @@ def generate_chart():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
