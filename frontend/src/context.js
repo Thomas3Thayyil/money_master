@@ -9,8 +9,18 @@ export const MoneyMasterProvider = ({ children }) => {
     expenses: "",
   });
 
-  const [globalNews, setGlobalNews] = useState(null); // Save news data
+  const [globalNews, setGlobalNews] = useState(null); // Save general news data
+  const [newsSummary, setNewsSummary] = useState({
+    summary: "",
+    sentiment: "",
+  }); // For summarized news (Art2)
   const [chatHistory, setChatHistory] = useState([]); // Store chat history
+
+  // New state for chart data
+  const [chartData, setChartData] = useState({
+    actualData: [],
+    forecastData: [],
+  });
 
   return (
     <MoneyMasterContext.Provider
@@ -19,8 +29,12 @@ export const MoneyMasterProvider = ({ children }) => {
         setUserData,
         globalNews,
         setGlobalNews,
+        newsSummary,
+        setNewsSummary,
         chatHistory,
         setChatHistory,
+        chartData,
+        setChartData,
       }}
     >
       {children}

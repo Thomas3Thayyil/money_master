@@ -238,5 +238,70 @@ def generate_chart():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
+@app.route('/get-news-summary', methods=['POST'])
+def get_news_summary():
+    ticker_symbol = request.json.get('ticker')
+    if not ticker_symbol:
+        return jsonify({'error': 'Ticker is required'}), 400
+
+    # Automatically append ".NS" if not present
+    if not ticker_symbol.strip().upper().endswith(".NS"):
+        ticker_symbol = ticker_symbol.strip().upper() + ".NS"
+    
+    try:
+        # Create a Ticker object from yfinance.
+        ticker = yf.Ticker(ticker_symbol)
+        news_items = ticker.news
+        if not news_items:
+            return jsonify({'error': 'No news found for this ticker'}), 404
+        
+        # Flatten news items (each item has an "id" and "content" dictionary)
+        flat_news = []
+        for item in news_items:
+            flat_item = {}
+            flat_item["id"] = item.get("id")
+            content = item.get("content", {})
+            flat_item.update(content)
+            flat_news.append(flat_item)
+        
+        df_news = pd.DataFrame(flat_news)
+        # For this example, if keys 'title' and 'pubDate' exist, pick the most recent article.
+        if "title" in df_news.columns and "pubDate" in df_news.columns:
+            article = df_news.sort_values("pubDate", ascending=False).iloc[0]
+            article_text = (
+                article.get('title', '') + "\n" +
+                article.get('description', '') + "\n" +
+                article.get('summary', '')
+            )
+        else:
+            article_text = df_news.iloc[0].to_string()
+        
+        # Create a prompt for summarization that asks the model to summarize and indicate sentiment.
+        prompt = f"Summarize the following news article and indicate if the sentiment is positive or negative:\n\n{article_text}"
+        
+        # Call your Groq API client to generate the summary.
+        client = Groq(api_key=GORQ_API_KEY)
+        resp = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile"
+        )
+        generated_text = resp.choices[0].message.content
+        
+        # Simple sentiment analysis based on generated text:
+        lower_text = generated_text.lower()
+        if "positive" in lower_text:
+            sentiment = "green"
+        elif "negative" in lower_text:
+            sentiment = "red"
+        else:
+            sentiment = "neutral"
+        
+        return jsonify({'summary': generated_text, 'sentiment': sentiment})
+    
+    except Exception as e:
+        print(f"Error in get_news_summary: {e}")
+        return jsonify({'error': 'Error generating news summary'}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)

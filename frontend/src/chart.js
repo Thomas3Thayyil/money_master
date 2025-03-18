@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import Plot from "react-plotly.js";
+import { MoneyMasterContext } from "./context";
 import "./style/app.css";
 import "./style/chart.css";
 
 const Chart = () => {
+  const { chartData, setChartData } = useContext(MoneyMasterContext);
   const [ticker, setTicker] = useState("");
   const [suggestions, setSuggestions] = useState([]);
-  const [forecast, setForecast] = useState([]);
-  const [actualData, setActualData] = useState([]);
   const [error, setError] = useState("");
 
   // Fetch tickers for auto-suggestions on component mount.
@@ -15,9 +15,7 @@ const Chart = () => {
     const fetchTickers = async () => {
       try {
         const response = await fetch("http://127.0.0.1:5000/get-tickers");
-        if (!response.ok) {
-          throw new Error("Failed to fetch tickers");
-        }
+        if (!response.ok) throw new Error("Failed to fetch tickers");
         const data = await response.json();
         if (data.tickers) {
           setSuggestions(data.tickers);
@@ -32,8 +30,8 @@ const Chart = () => {
   const handleChartSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setForecast([]);
-    setActualData([]);
+    // Clear previous chart data in context.
+    setChartData({ actualData: [], forecastData: [] });
 
     try {
       const response = await fetch("http://127.0.0.1:5000/generate-chart", {
@@ -45,8 +43,10 @@ const Chart = () => {
       if (data.error) {
         setError(data.error);
       } else {
-        setForecast(data.forecast_data || []);
-        setActualData(data.actual_data || []);
+        setChartData({
+          actualData: data.actual_data || [],
+          forecastData: data.forecast_data || [],
+        });
       }
     } catch (error) {
       console.error("Error generating chart:", error);
@@ -55,15 +55,21 @@ const Chart = () => {
   };
 
   const generateChartData = () => {
-    if (!Array.isArray(actualData) || !Array.isArray(forecast)) {
+    const { actualData, forecastData } = chartData;
+    if (
+      !Array.isArray(actualData) ||
+      !Array.isArray(forecastData) ||
+      actualData.length === 0 ||
+      forecastData.length === 0
+    ) {
       return { data: [], layout: {} };
     }
 
-    // Ensure we convert the date strings to Date objects
+    // Convert date strings to Date objects
     const actualDates = actualData.map((item) => new Date(item.date));
     const actualPrices = actualData.map((item) => item.close);
-    const forecastDates = forecast.map((item) => new Date(item.date));
-    const forecastPrices = forecast.map((item) => item.predicted);
+    const forecastDates = forecastData.map((item) => new Date(item.date));
+    const forecastPrices = forecastData.map((item) => item.predicted);
 
     return {
       data: [
@@ -117,7 +123,8 @@ const Chart = () => {
       </form>
       {error && <p style={{ color: "red" }}>{error}</p>}
       <div id="chart">
-        {forecast.length === 0 || actualData.length === 0 ? (
+        {chartData.actualData.length === 0 ||
+        chartData.forecastData.length === 0 ? (
           <p>Chart will appear here:</p>
         ) : (
           <Plot

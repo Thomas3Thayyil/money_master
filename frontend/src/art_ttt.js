@@ -36,7 +36,7 @@ function Art() {
 
   const fetchPersonalAdvice = async () => {
     try {
-      const prompt = `Given that you earn $${userData.salary} per month and have expenses of $${userData.expenses}, provide personalized financial advice in markdown format.`;
+      const prompt = `Given that you earn ${userData.salary} per month and have expenses of ${userData.expenses} in indian rupees, provide personalized financial advice in markdown format.`;
       const res = await fetch("http://127.0.0.1:5000/generate-text_gorq", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
