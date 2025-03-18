@@ -8,8 +8,13 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
 import requests
+from groq import Groq 
 from datetime import timedelta
-import time
+import logging
+import warnings
+from nsetools import Nse
+import yfinance as yf
+
 
 app = Flask(__name__)
 CORS(app)
@@ -50,7 +55,7 @@ def art_create():
             x = model.generate_content(f"{predef} {title}")
             details.append(x.text)
 
-        return jsonify({"messagehead": title_list, "messagebody": details})
+        return jsonify({"messagehead": title_list[:5], "messagebody": details})
     
     except Exception as e:
         
@@ -79,47 +84,152 @@ def generate_text():
         print(f"Error generating text: {e}")
         return jsonify({'error': 'Error generating text'}), 500
 
+GORQ_API_KEY = "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"
+# Optionally, you can also set it via environment variable:
+# os.environ["GROQ_API_KEY"] = GORQ_API_KEY
+
+@app.route('/art_create_gorq', methods=['POST'])
+def art_create_gorq():
+    try:
+        # Fetch global news articles as before
+        response = requests.get(url, params=params)
+        data = response.json()
+        title_list = [article.get('title', 'No title available') for article in data.get('articles', [])]
+        details = []
+        
+        # Predefined prompt for summarization
+        predef = (
+            "Read the title carefully. ",
+            "Give me a summary of how this will influence the price of various stocks. ",
+            "Give ONLY that, in a paragraph format. ",
+            "Specifically name the stocks."
+        )
+        prompt_base = " ".join(predef)
+        
+        # Create a Groq client using the gorq API key
+        client = Groq(api_key=GORQ_API_KEY)
+        
+        for title in title_list[:5]:
+            prompt = f"{prompt_base} {title}"
+            # Use the Groq client to generate a summary.
+            resp = client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model="llama-3.3-70b-versatile"
+            )
+            # Extract the generated text
+            summary = resp.choices[0].message.content
+            details.append(summary)
+            
+        return jsonify({"messagehead": title_list[:5], "messagebody": details})
+    
+    except Exception as e:
+        print("Exception in art_create_gorq:", e)
+        fallback_titles = title_list if 'title_list' in locals() else ['No data']
+        return jsonify({"messagehead": fallback_titles, "messagebody": ['Error generating details']}), 500
+
+@app.route('/generate-text_gorq', methods=['POST'])
+def generate_text_gorq():
+    prompt = request.json.get('prompt')
+    if not prompt:
+        return jsonify({'error': 'Prompt is required'}), 400
+    
+    try:
+        # Create a Groq client using the gorq API key
+        client = Groq(api_key=GORQ_API_KEY)
+        
+        # Generate completion using the provided prompt
+        resp = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile"
+        )
+        generated_text = resp.choices[0].message.content
+        return jsonify({'text': generated_text})
+    
+    except Exception as e:
+        print(f"Error in generate-text_gorq: {e}")
+        return jsonify({'error': 'Error generating text'}), 500
+
+
+logging.getLogger("cmdstanpy").setLevel(logging.WARNING)
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+
+# Initialize NSE and get list of NSE tickers
+nse = Nse()
+nse_stock_list = nse.get_stock_codes()  # Returns a list of tickers
+# Clean the list: remove empty entries and the header "SYMBOL"
+nse_stock_set = set([s.strip().upper() for s in nse_stock_list if s.strip() and s.strip() != "SYMBOL"])
+
+@app.route('/get-tickers', methods=['GET'])
+def get_tickers():
+    try:
+        tickers = list(nse_stock_set)
+        return jsonify({"tickers": tickers})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/generate-chart', methods=['POST'])
 def generate_chart():
     try:
-        # Get the received date from the frontend request
-        
         data = request.get_json()
-        
-        received_date = pd.to_datetime(data['date'])     
-        
-        # Calculate the end date (1 month after the received date)
-        end_date = received_date + timedelta(days=30)
-        
-        # Filter the data based on the received date and 1 month after it
-        df_filtered = df[(df['date'] >= received_date.strftime('%Y-%m-%d')) & (df['date'] < end_date.strftime('%Y-%m-%d'))]
-        
-        # Prepare data for Prophet (Prophet expects 'ds' and 'y')
-        df_filtered_prophet = df_filtered[['date', 'close']].rename(columns={'date': 'ds', 'close': 'y'})
-        
-        # Initialize the Prophet model
-        model = Prophet(daily_seasonality=False, yearly_seasonality=False, weekly_seasonality=True)
-        
-        # Fit the model on the filtered data
-        model.fit(df_filtered_prophet)
+        input_ticker = data.get("ticker", "").strip().upper()
+        if not input_ticker:
+            return jsonify({"error": "Ticker is required"}), 400
 
-        # Create a dataframe to hold future dates (next 7 days after the end date)
-        future_dates = model.make_future_dataframe(periods=7*24*60, freq='min')   # 7 days forecast
-        
-        # Make predictions for the next 7 days
-        forecast = model.predict(future_dates)
-        
-        # Prepare the forecast for the next 7 days
-        forecast_filtered = forecast[(forecast['ds'] >= end_date.strftime('%Y-%m-%d')) & (forecast['ds'] < (end_date+ timedelta(days=30)).strftime('%Y-%m-%d'))]
-        print(forecast_filtered)
-        print(f"Type of forecast_filtered['ds']: {type(forecast_filtered['ds'].iloc[0])}")
-        print(f"Any NaN in forecast_filtered['yhat']? {forecast_filtered['yhat'].isna().any()}")
+        # Append .NS if not present and verify the ticker exists in the NSE list
+        if not input_ticker.endswith(".NS"):
+            if input_ticker in nse_stock_set:
+                ticker = input_ticker + ".NS"
+            else:
+                return jsonify({"error": f"Ticker {input_ticker} not found in NSE"}), 404
+        else:
+            base_ticker = input_ticker[:-3]
+            if base_ticker in nse_stock_set:
+                ticker = input_ticker
+            else:
+                return jsonify({"error": f"Ticker {input_ticker} not found in NSE"}), 404
 
-        # Generate the plot
-        forecast_data = forecast_filtered[['ds', 'yhat']].rename(columns={'ds': 'date', 'yhat': 'predicted'}).to_dict(orient='records')
-        actual_data = df_filtered[['date', 'close']].to_dict(orient='records')
+        # Try downloading data using yfinance.
+        try:
+            df = yf.download(ticker, period="8d", interval="1m")
+        except Exception as download_error:
+            return jsonify({"error": f"Failed to download data for ticker {ticker}: {download_error}"}), 404
 
-        # Return the forecasted and actual data as JSON
+        if df.empty:
+            return jsonify({"error": f"No data found for ticker {ticker}. It might be temporarily unavailable."}), 404
+
+        df.reset_index(inplace=True)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+
+        # Prepare data for Prophet.
+        df_prophet = df[['Datetime', 'Close']].rename(columns={'Datetime': 'ds', 'Close': 'y'})
+        df_prophet['ds'] = pd.to_datetime(df_prophet['ds']).dt.tz_localize(None)
+        df_prophet['y'] = pd.to_numeric(df_prophet['y'], errors='coerce')
+
+        # Use the latter portion of the historical data (one-third index here).
+        half_index = len(df_prophet) // 3
+        historical_data_second_half = df_prophet.iloc[half_index:]
+
+        # Fit the Prophet model.
+        model = Prophet(daily_seasonality=1, yearly_seasonality=8, weekly_seasonality=0)
+        model.fit(df_prophet)
+
+        # Forecast the next 2160 minutes (1.5 days).
+        future = model.make_future_dataframe(periods=2160, freq='min')
+        forecast = model.predict(future)
+
+        # Filter predictions beyond the last training timestamp.
+        last_actual_date = df_prophet['ds'].iloc[-1]
+        predicted_data = forecast[forecast['ds'] > last_actual_date][['ds', 'yhat']]
+
+        actual_data = historical_data_second_half[['ds', 'y']].rename(
+            columns={'ds': 'date', 'y': 'close'}
+        ).to_dict(orient='records')
+        forecast_data = predicted_data.rename(
+            columns={'ds': 'date', 'yhat': 'predicted'}
+        ).to_dict(orient='records')
+
         return jsonify({
             'actual_data': actual_data,
             'forecast_data': forecast_data
@@ -127,7 +237,6 @@ def generate_chart():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 400
-
 
 if __name__ == '__main__':
     app.run(debug=True)

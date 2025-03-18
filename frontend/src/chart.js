@@ -1,27 +1,56 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Plot from "react-plotly.js";
-import "./App.css";
+import "./style/app.css";
+import "./style/chart.css";
 
 const Chart = () => {
-  const [date, setDate] = useState("");
+  const [ticker, setTicker] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
   const [forecast, setForecast] = useState([]);
   const [actualData, setActualData] = useState([]);
+  const [error, setError] = useState("");
+
+  // Fetch tickers for auto-suggestions on component mount.
+  useEffect(() => {
+    const fetchTickers = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:5000/get-tickers");
+        if (!response.ok) {
+          throw new Error("Failed to fetch tickers");
+        }
+        const data = await response.json();
+        if (data.tickers) {
+          setSuggestions(data.tickers);
+        }
+      } catch (err) {
+        console.error("Error fetching tickers:", err);
+      }
+    };
+    fetchTickers();
+  }, []);
 
   const handleChartSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setForecast([]);
+    setActualData([]);
 
     try {
       const response = await fetch("http://127.0.0.1:5000/generate-chart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date }),
+        body: JSON.stringify({ ticker }),
       });
       const data = await response.json();
-
-      setForecast(data.forecast_data || []);
-      setActualData(data.actual_data || []);
+      if (data.error) {
+        setError(data.error);
+      } else {
+        setForecast(data.forecast_data || []);
+        setActualData(data.actual_data || []);
+      }
     } catch (error) {
       console.error("Error generating chart:", error);
+      setError("An error occurred while generating the chart.");
     }
   };
 
@@ -30,9 +59,10 @@ const Chart = () => {
       return { data: [], layout: {} };
     }
 
-    const actualDates = actualData.map((item) => item.date);
+    // Ensure we convert the date strings to Date objects
+    const actualDates = actualData.map((item) => new Date(item.date));
     const actualPrices = actualData.map((item) => item.close);
-    const forecastDates = forecast.map((item) => item.date);
+    const forecastDates = forecast.map((item) => new Date(item.date));
     const forecastPrices = forecast.map((item) => item.predicted);
 
     return {
@@ -42,7 +72,7 @@ const Chart = () => {
           y: actualPrices,
           type: "scatter",
           mode: "lines",
-          name: "Actual Stock Prices",
+          name: "Historical Data",
           marker: { color: "blue" },
         },
         {
@@ -50,19 +80,14 @@ const Chart = () => {
           y: forecastPrices,
           type: "scatter",
           mode: "lines",
-          name: "Predicted Stock Prices",
-          marker: { color: "orange" },
+          name: "Predicted Data",
+          marker: { color: "red" },
         },
       ],
       layout: {
-        title: "Stock Price Prediction for Next 7 Days",
-        xaxis: {
-          title: "Date",
-          type: "category",
-        },
-        yaxis: {
-          title: "Stock Price",
-        },
+        title: "Stock Price Prediction",
+        xaxis: { title: "Datetime", type: "date" },
+        yaxis: { title: "Price" },
         responsive: true,
       },
     };
@@ -70,17 +95,27 @@ const Chart = () => {
 
   return (
     <div className="chart-section">
-      <h2>Nifty 50 Prediction</h2>
+      <h2>Indian Stock Price Prediction</h2>
       <form onSubmit={handleChartSubmit}>
-        <label htmlFor="date">Select Date:</label>
+        <label htmlFor="ticker">Enter Stock Ticker:</label>
         <input
-          type="date"
-          id="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
+          type="text"
+          id="ticker"
+          placeholder="e.g., ZOTA"
+          list="ticker-suggestions"
+          value={ticker}
+          onChange={(e) => setTicker(e.target.value)}
         />
+        <datalist id="ticker-suggestions">
+          {suggestions
+            .filter((s) => s.toLowerCase().includes(ticker.toLowerCase()))
+            .map((s, index) => (
+              <option key={index} value={s} />
+            ))}
+        </datalist>
         <button type="submit">Generate Chart</button>
       </form>
+      {error && <p style={{ color: "red" }}>{error}</p>}
       <div id="chart">
         {forecast.length === 0 || actualData.length === 0 ? (
           <p>Chart will appear here:</p>

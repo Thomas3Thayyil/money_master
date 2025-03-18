@@ -4,24 +4,23 @@ import "./App.css";
 
 function Banner({ setCont }) {
   return (
-    <div className="banner">
+    <div className="Banner">
       <div className="icon-container">
-        <i 
-          className="fas fa-home" 
-          title="Home"
-          onClick={() => setCont(0)}
-        ></i>
-        <i 
-          className="fas fa-solid fa-robot" 
+        <i className="fas fa-home" title="Home" onClick={() => setCont(0)}></i>
+        <i
+          className="fas fa-solid fa-robot"
           title="Chatbot"
           onClick={() => setCont(1)}
         ></i>
-        <i 
-          className="fas fa-sharp fa-solid fa-chart-simple" 
+        <i
+          className="fas fa-sharp fa-solid fa-chart-simple"
           title="Stock Price Prediction"
           onClick={() => setCont(2)}
         ></i>
-        <i className="fas fa-regular fa-newspaper" title="Article Summarization"></i>
+        <i
+          className="fas fa-regular fa-newspaper"
+          title="Article Summarization"
+        ></i>
         <i className="fas fa-info-circle" title="Info"></i>
       </div>
     </div>

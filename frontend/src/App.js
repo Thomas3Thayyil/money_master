@@ -1,14 +1,18 @@
-import React, { useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+// App.js
+import React from "react";
+import { BrowserRouter as Router } from "react-router-dom";
 import "./App.css";
 import Home from "./Home.js";
+import { MoneyMasterProvider } from "./context.js";
 
 function App() {
-return(
-  <Router>
-    <Home />
-  </Router>
-)
+  return (
+    <Router>
+      <MoneyMasterProvider>
+        <Home />
+      </MoneyMasterProvider>
+    </Router>
+  );
 }
 
 export default App;

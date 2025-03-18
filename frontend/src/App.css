@@ -3,6 +3,106 @@
   flex-direction: column;
   align-items: flex-start;
   font-family: Arial, sans-serif;
+  min-height: 100vh;
+}
+/* Container to center the form */
+/* Container that centers the form horizontally */
+.user-form-container {
+  margin: 40px auto; /* centers the container horizontally */
+  padding: 20px;
+}
+
+/* The form box itself with a max width and centered content */
+.user-form-box {
+  background-color: #ffffff;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+}
+
+/* Heading and paragraph styles */
+.user-form-box h2 {
+  margin-bottom: 10px;
+  color: #333333;
+  font-size: 1.75rem;
+}
+
+.user-form-box p {
+  margin-bottom: 20px;
+  color: #555555;
+  font-size: 0.95rem;
+}
+
+/* Style for each form field */
+.form-field {
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333333;
+}
+
+.form-field input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+/* Submit button styling */
+.form-submit-btn {
+  width: 100%;
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.form-submit-btn:hover {
+  background-color: #0056b3;
+}
+
+.chart-section {
+  width: 90%;
+  background-color: #f9f9f9;
+  border: 1px solid #ccc;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 40px auto;
+  margin-bottom: 80px;
+}
+
+.chatbot-section {
+  width: 90%;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  padding-left: 10px;
+  overflow-y: auto;
+  box-sizing: border-box;
+  margin: 40px auto;
+}
+.middle-content {
+  padding: 20px 0; /* 20px top and bottom padding, adjust as needed */
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1;
 }
 
 .App-header {
@@ -15,29 +115,29 @@
   text-align: center;
 }
 
+main {
+  flex-grow: 1; /* Ensures content takes available space */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.Banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #333; /* Adjust as needed */
+  padding: 10px;
+  text-align: center;
+  z-index: 1000; /* Ensures it stays above other content */
+}
+
 .content {
   display: flex;
   width: 100%;
   padding: 20px;
   gap: 20px;
-}
-
-.article-summarizer {
-  flex: 1;
-  background-color: #f9f9f9;
-  border: 1px solid #ccc;
-  padding: 20px;
-  border-radius: 8px;
-  margin-right: 22.5%;
-}
-
-.chart-section {
-  width: 90%;
-  background-color: #f9f9f9;
-  border: 1px solid #ccc;
-  padding: 20px;
-  border-radius: 8px;
-  margin-left: 1%;
 }
 
 #chart {
@@ -60,17 +160,6 @@
   }
 }
 
-.chatbot-section {
-  width: 100%;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  background-color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  padding-left: 10px;
-  overflow-y: auto;
-  box-sizing: border-box;
-}
 .chatbot-section h2 {
   margin-left: 10px;
 }
@@ -176,7 +265,8 @@ button:hover {
   color: #f0a500;
 }
 
-.banner, .icon-container {
+.banner,
+.icon-container {
   pointer-events: auto;
 }
 

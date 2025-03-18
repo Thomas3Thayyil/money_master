@@ -1,54 +1,100 @@
-import React, { useState, useEffect } from "react";
-import "./App.css";
+import React, { useState, useEffect, useContext } from "react";
+import { MoneyMasterContext } from "./context";
+import ReactMarkdown from "react-markdown";
+import "./style/app.css";
+import "./style/art.css";
 
 function Art() {
-    const [response, setResponse] = useState({ messagehead: [], messagebody: [] });
-    const [expandedIndex, setExpandedIndex] = useState(null);
+  const { userData, globalNews, setGlobalNews } =
+    useContext(MoneyMasterContext);
+  const [personalAdvice, setPersonalAdvice] = useState("");
+  const [expandedIndex, setExpandedIndex] = useState(null);
 
-    const art_create = async () => {
-        try {
-            const res = await fetch("http://127.0.0.1:5000/art_create", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-            });
-            const data = await res.json();
-            setResponse(data);
-        } catch (error) {
-            console.error("Error generating art:", error);
-        }
-    };
+  // Fetch news only if it's not stored in context
+  useEffect(() => {
+    if (!globalNews) {
+      fetchGlobalNews();
+    }
+    fetchPersonalAdvice();
+  }, [userData]);
 
-    useEffect(() => {
-        art_create();
-    }, []);
+  const fetchGlobalNews = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:5000/art_create_gorq", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      setGlobalNews({
+        messagehead: data.messagehead || [],
+        messagebody: data.messagebody || [],
+      });
+    } catch (error) {
+      console.error("Error fetching global news:", error);
+    }
+  };
 
-    const toggleItem = (index) => {
-        setExpandedIndex(expandedIndex === index ? null : index);
-    };
+  const fetchPersonalAdvice = async () => {
+    try {
+      const prompt = `Given that you earn $${userData.salary} per month and have expenses of $${userData.expenses}, provide personalized financial advice in markdown format.`;
+      const res = await fetch("http://127.0.0.1:5000/generate-text_gorq", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await res.json();
+      setPersonalAdvice(data.text || "No advice generated.");
+    } catch (error) {
+      console.error("Error fetching personalized advice:", error);
+      setPersonalAdvice("Error fetching personalized advice.");
+    }
+  };
 
-    const renderItem = (index) => {
-        const isExpanded = expandedIndex === index;
-        return (
-            <div 
-                className={`item ${isExpanded ? 'expanded' : ''}`}
-                onClick={() => toggleItem(index)}
-                key={index}
-            >
-                <h3>{response.messagehead[index] || "No message generated yet."}</h3>
-                <div className={`details ${isExpanded ? 'show' : ''}`}>
-                    {response.messagebody[index] || "No message generated yet."}
-                </div>
-            </div>
-        );
-    };
+  const toggleItem = (index) => {
+    setExpandedIndex(expandedIndex === index ? null : index);
+  };
 
-    return (
-        <div className="container">
-            <div className="scrollable-container">
-                {[0, 1, 2, 3, 4].map(index => renderItem(index))}
-            </div>
+  return (
+    <div className="art-container">
+      <div className="personal-advice-box">
+        <div className="box-header">
+          <h2>Personalized Financial Advice</h2>
         </div>
-    );
+        <div className="advice-content">
+          {personalAdvice ? (
+            <ReactMarkdown>{personalAdvice}</ReactMarkdown>
+          ) : (
+            "Loading personalized advice..."
+          )}
+        </div>
+      </div>
+      <div className="global-news-box">
+        <div className="box-header">
+          <h2>Global Financial News</h2>
+        </div>
+        <div className="news-content">
+          {globalNews ? (
+            globalNews.messagehead.map((title, index) => (
+              <div
+                className="item"
+                key={index}
+                onClick={() => toggleItem(index)}
+              >
+                <h3>{title}</h3>
+                <div
+                  className={`details ${expandedIndex === index ? "show" : ""}`}
+                >
+                  {globalNews.messagebody[index]}
+                </div>
+              </div>
+            ))
+          ) : (
+            <p>Loading global news...</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default Art;
