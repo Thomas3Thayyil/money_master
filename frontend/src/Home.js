@@ -1,10 +1,10 @@
-// Home.js
 import React, { useState, useContext } from "react";
 import Banner from "./command_bar.js";
 import "./style/app.css";
 import Chart from "./chart.js";
 import Chatbot from "./chatbot.js";
 import Art from "./art_ttt.js";
+import Art2 from "./art2.js";
 import UserForm from "./UserForm";
 import { MoneyMasterContext } from "./context";
 
@@ -27,6 +27,8 @@ function Home() {
         return <Chatbot />;
       case 2:
         return <Chart />;
+      case 3:
+        return <Art2 />;
       default:
         return (
           <div className="art-section">

@@ -20,6 +20,7 @@ function Banner({ setCont }) {
         <i
           className="fas fa-regular fa-newspaper"
           title="Article Summarization"
+          onClick={() => setCont(3)}
         ></i>
         <i className="fas fa-info-circle" title="Info"></i>
       </div>
