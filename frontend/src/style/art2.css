@@ -3,9 +3,9 @@
 /* Fixed container for the Art2 component */
 .art2-container {
   width: 800px; /* Fixed width */
-  height: 550px; /* Fixed height */
+  height: 520px; /* Fixed height */
   margin: auto;
-  margin-bottom: 76px;
+  margin-bottom: 75px;
   padding: 20px;
   background-color: #f8f8f8;
   /* border: 2px solid #007bff; */

@@ -7,3 +7,4 @@ matplotlib
 gunicorn
 groq
 nsetools
+yfinance

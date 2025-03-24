@@ -84,7 +84,7 @@ def generate_text():
         print(f"Error generating text: {e}")
         return jsonify({'error': 'Error generating text'}), 500
 
-GORQ_API_KEY = "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"
+GORQ_API_KEY = "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"
 # Optionally, you can also set it via environment variable:
 # os.environ["GROQ_API_KEY"] = GORQ_API_KEY
 
